@@ -2,8 +2,8 @@
 
 Lab opens with a quiz and then kicks off the hackathon.
 
-To get the full point for the lab, you need to pass Tasks 1-3 during the lab. 
-Tasks 4-5 must be finished by the usual deadline of Thursday 23:59.
+To get the full point for the lab, you need to pass Tasks 1, 2, 3, 4 (version 1) during the lab. 
+Task 4 (version 2) and Task 5 must be finished by the usual deadline of Thursday 23:59.
 
 Each student builds their own project:
 - Go from idea to a deployed product.
