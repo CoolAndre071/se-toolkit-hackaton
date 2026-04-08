@@ -69,6 +69,18 @@ Note:
 - You can use the setup from Lab 8 or start from scratch.
 - `Telegram` bots are blocked on university VMs.
 
+### Task 2 deliverable for this project
+
+End user: University students who track multiple course assignments and personal study tasks.
+
+Problem: Students miss deadlines because they do not have one clear daily list of what to do first.
+
+Product idea: `Deadline Coach` is a web app that collects student tasks and automatically shows a clear "do next" plan for today based on deadlines.
+
+Core feature: A "Today Plan" that sorts open tasks by deadline and completion status, where the student can add tasks and mark them done (Version 1). If effort is used, it is entered by the user.
+
+Additional feature: Natural-language task input (for example: "Math HW due Friday, 90 minutes") that converts a text message into a structured task automatically (Version 2).
+
 ## Task 3 (approved by TA during the lab)
 
 Implement Version 1 outlined in the plan:
@@ -168,3 +180,35 @@ Submit a presentation with five slides:
     - Which OS the VM should run on (you may assume `Ubuntu 24.04` like on your university VMs)
     - What should be installed on the VM
     - Step-by-step deployment instructions
+
+## Version 1 implementation (`Deadline Coach`)
+
+Implemented in this branch:
+
+- Backend: `FastAPI` API (`app/main.py`) with endpoints to create tasks, list tasks, mark done, and get the today plan.
+- Database: `SQLite` (`deadline_coach.db`) initialized automatically on startup.
+- End-user client: static web UI (`static/index.html`) served by FastAPI.
+
+### Run with `uv`
+
+1. Sync dependencies:
+
+   ```bash
+   uv sync --group dev
+   ```
+
+2. Start the app:
+
+   ```bash
+   uv run uvicorn app.main:app --reload
+   ```
+
+3. Open in browser:
+
+   - `http://127.0.0.1:8000`
+
+### Run tests
+
+```bash
+uv run pytest
+```

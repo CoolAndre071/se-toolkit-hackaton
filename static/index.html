@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deadline Coach</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <h1>Deadline Coach</h1>
+      <p>Your focused today plan for study tasks.</p>
+    </header>
+
+    <section class="card">
+      <h2>Add Task</h2>
+      <form id="task-form" class="grid">
+        <label>
+          Title
+          <input type="text" id="title" name="title" required maxlength="200" placeholder="Linear algebra homework">
+        </label>
+
+        <label>
+          Course
+          <input type="text" id="course" name="course" maxlength="100" placeholder="Math">
+        </label>
+
+        <label>
+          Deadline
+          <input type="date" id="deadline" name="deadline" required>
+        </label>
+
+        <label>
+          Estimated minutes (optional)
+          <input type="number" id="estimated_minutes" name="estimated_minutes" min="1" max="1440" placeholder="90">
+        </label>
+
+        <button type="submit">Create Task</button>
+      </form>
+      <p id="message" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Today Plan</h2>
+        <button id="refresh-plan" type="button">Refresh</button>
+      </div>
+      <ul id="today-plan" class="task-list"></ul>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>All Tasks</h2>
+        <button id="refresh-tasks" type="button">Refresh</button>
+      </div>
+      <ul id="all-tasks" class="task-list"></ul>
+    </section>
+  </main>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
