@@ -9,14 +9,14 @@ from fastapi.staticfiles import StaticFiles
 
 from app.db import init_db
 from app.planner import build_today_plan
-from app.repository import create_task, list_open_tasks, list_tasks, mark_task_done
-from app.schemas import Task, TaskCreate, TodayPlanItem
+from app.repository import create_task, list_open_tasks, list_tasks, mark_task_done, update_task
+from app.schemas import Task, TaskCreate, TaskUpdate, TodayPlanItem
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "static"
 VALID_USER_ID_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 
-app = FastAPI(title="Deadline Coach", version="1.1.0")
+app = FastAPI(title="Deadline Coach", version="1.2.0")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
@@ -60,6 +60,14 @@ def get_tasks(
 @app.post("/api/tasks", response_model=Task, status_code=201)
 def post_task(task: TaskCreate, user_id: str = Depends(get_user_id)) -> dict:
     return create_task(task, user_id=user_id)
+
+
+@app.patch("/api/tasks/{task_id}", response_model=Task)
+def patch_task(task_id: int, task_update: TaskUpdate, user_id: str = Depends(get_user_id)) -> dict:
+    task = update_task(task_id=task_id, user_id=user_id, task_update=task_update)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
 
 
 @app.patch("/api/tasks/{task_id}/done", response_model=Task)

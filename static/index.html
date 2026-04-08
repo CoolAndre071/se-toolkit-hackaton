@@ -24,7 +24,7 @@
     </section>
 
     <section class="card">
-      <h2>Add Task</h2>
+      <h2 id="task-form-title">Add Task</h2>
       <form id="task-form" class="grid">
         <label>
           Title
@@ -46,7 +46,10 @@
           <input type="number" id="estimated_minutes" name="estimated_minutes" min="1" max="1440" placeholder="90">
         </label>
 
-        <button type="submit">Create Task</button>
+        <div class="form-actions">
+          <button id="submit-task" type="submit">Create Task</button>
+          <button id="cancel-edit" type="button" class="secondary-button" hidden>Cancel Edit</button>
+        </div>
       </form>
       <p id="message" role="status" aria-live="polite"></p>
     </section>

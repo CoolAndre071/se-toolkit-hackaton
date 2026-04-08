@@ -1,4 +1,7 @@
 const taskForm = document.getElementById("task-form");
+const taskFormTitle = document.getElementById("task-form-title");
+const submitTaskButton = document.getElementById("submit-task");
+const cancelEditButton = document.getElementById("cancel-edit");
 const messageEl = document.getElementById("message");
 const todayPlanEl = document.getElementById("today-plan");
 const allTasksEl = document.getElementById("all-tasks");
@@ -14,6 +17,8 @@ const TASK_FILTER_STORAGE_KEY = "deadlineCoachAllTasksFilter";
 const USER_ID_PATTERN = /^[A-Za-z0-9_.-]{1,64}$/;
 const VALID_TASK_FILTERS = new Set(["open", "all"]);
 let activeUserId = "";
+let editingTaskId = null;
+const taskById = new Map();
 
 function escapeHtml(value) {
   return value
@@ -49,9 +54,11 @@ function renderEmptyState(element, text) {
 function renderTaskItem(task, includePlanFlags = false) {
   const titleClass = task.status === "done" ? "task-title done" : "task-title";
   const overdueBadge = includePlanFlags && task.is_overdue ? "<span class=\"badge-overdue\">Overdue</span>" : "";
-  const doneButton = task.status === "done"
-    ? ""
-    : `<button type=\"button\" data-action=\"done\" data-id=\"${task.id}\">Mark done</button>`;
+
+  const actions = [`<button type=\"button\" data-action=\"edit\" data-id=\"${task.id}\">Edit</button>`];
+  if (task.status !== "done") {
+    actions.unshift(`<button type=\"button\" data-action=\"done\" data-id=\"${task.id}\">Mark done</button>`);
+  }
 
   return `
     <li class="task-item">
@@ -59,7 +66,7 @@ function renderTaskItem(task, includePlanFlags = false) {
         <div class="${titleClass}">${escapeHtml(task.title)} ${overdueBadge}</div>
         <div class="task-meta">${escapeHtml(taskMeta(task))}</div>
       </div>
-      <div>${doneButton}</div>
+      <div class="task-actions">${actions.join("")}</div>
     </li>
   `;
 }
@@ -99,6 +106,26 @@ function setAllTasksFilter(filter) {
   localStorage.setItem(TASK_FILTER_STORAGE_KEY, nextFilter);
 }
 
+function setEditingMode(task) {
+  editingTaskId = task.id;
+  taskFormTitle.textContent = `Edit Task #${task.id}`;
+  submitTaskButton.textContent = "Save Changes";
+  cancelEditButton.hidden = false;
+
+  document.getElementById("title").value = task.title;
+  document.getElementById("course").value = task.course || "";
+  document.getElementById("deadline").value = task.deadline;
+  document.getElementById("estimated_minutes").value = task.estimated_minutes ?? "";
+}
+
+function clearEditingMode() {
+  editingTaskId = null;
+  taskFormTitle.textContent = "Add Task";
+  submitTaskButton.textContent = "Create Task";
+  cancelEditButton.hidden = true;
+  taskForm.reset();
+}
+
 async function fetchJson(url, options = {}) {
   requireUserId();
   const response = await fetch(url, {
@@ -124,6 +151,12 @@ async function fetchJson(url, options = {}) {
   return response.json();
 }
 
+function rememberTasks(tasks) {
+  for (const task of tasks) {
+    taskById.set(task.id, task);
+  }
+}
+
 async function loadTodayPlan() {
   if (!activeUserId) {
     renderEmptyState(todayPlanEl, "Set User ID to view your tasks.");
@@ -131,8 +164,9 @@ async function loadTodayPlan() {
   }
 
   const tasks = await fetchJson("/api/today-plan");
+  rememberTasks(tasks);
   if (!tasks.length) {
-    renderEmptyState(todayPlanEl, "No open tasks. Add one above.");
+    renderEmptyState(todayPlanEl, "No tasks for today. Add one above.");
     return;
   }
   todayPlanEl.innerHTML = tasks.map((task) => renderTaskItem(task, true)).join("");
@@ -146,6 +180,7 @@ async function loadAllTasks() {
 
   const filter = getAllTasksFilter();
   const tasks = await fetchJson(`/api/tasks?status=${encodeURIComponent(filter)}`);
+  rememberTasks(tasks);
   if (!tasks.length) {
     const emptyText = filter === "open" ? "No open tasks." : "No tasks yet.";
     renderEmptyState(allTasksEl, emptyText);
@@ -155,10 +190,11 @@ async function loadAllTasks() {
 }
 
 async function refreshAll() {
+  taskById.clear();
   await Promise.all([loadTodayPlan(), loadAllTasks()]);
 }
 
-async function handleCreateTask(event) {
+async function handleSubmitTask(event) {
   event.preventDefault();
 
   if (!activeUserId) {
@@ -167,6 +203,7 @@ async function handleCreateTask(event) {
   }
 
   const formData = new FormData(taskForm);
+  const estimatedRaw = (formData.get("estimated_minutes") || "").toString().trim();
 
   const payload = {
     title: (formData.get("title") || "").toString().trim(),
@@ -174,26 +211,58 @@ async function handleCreateTask(event) {
     deadline: formData.get("deadline"),
   };
 
-  const estimated = (formData.get("estimated_minutes") || "").toString().trim();
-  if (estimated) {
-    payload.estimated_minutes = Number(estimated);
+  if (estimatedRaw) {
+    payload.estimated_minutes = Number(estimatedRaw);
   }
 
   try {
+    if (editingTaskId !== null) {
+      await fetchJson(`/api/tasks/${editingTaskId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          ...payload,
+          estimated_minutes: estimatedRaw ? Number(estimatedRaw) : null,
+        }),
+      });
+      messageEl.textContent = "Task updated.";
+      clearEditingMode();
+      await refreshAll();
+      return;
+    }
+
     await fetchJson("/api/tasks", {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    taskForm.reset();
     messageEl.textContent = "Task created.";
+    taskForm.reset();
     await refreshAll();
   } catch (error) {
-    messageEl.textContent = `Failed to create task: ${error.message}`;
+    messageEl.textContent = `Failed to save task: ${error.message}`;
   }
 }
 
-async function handleMarkDone(event) {
-  const button = event.target.closest("button[data-action='done']");
+async function handleMarkDone(taskId) {
+  await fetchJson(`/api/tasks/${taskId}/done`, { method: "PATCH" });
+  if (editingTaskId === taskId) {
+    clearEditingMode();
+  }
+  messageEl.textContent = "Task marked as done.";
+  await refreshAll();
+}
+
+function handleStartEdit(taskId) {
+  const task = taskById.get(taskId);
+  if (!task) {
+    messageEl.textContent = "Task data is not available. Refresh and try again.";
+    return;
+  }
+  setEditingMode(task);
+  messageEl.textContent = `Editing task #${taskId}`;
+}
+
+async function handleTaskAction(event) {
+  const button = event.target.closest("button[data-action]");
   if (!button) {
     return;
   }
@@ -203,11 +272,19 @@ async function handleMarkDone(event) {
     return;
   }
 
-  const taskId = button.getAttribute("data-id");
+  const action = button.getAttribute("data-action");
+  const taskId = Number(button.getAttribute("data-id"));
+
   try {
-    await fetchJson(`/api/tasks/${taskId}/done`, { method: "PATCH" });
-    messageEl.textContent = "Task marked as done.";
-    await refreshAll();
+    if (action === "done") {
+      await handleMarkDone(taskId);
+      return;
+    }
+
+    if (action === "edit") {
+      handleStartEdit(taskId);
+      return;
+    }
   } catch (error) {
     messageEl.textContent = `Failed to update task: ${error.message}`;
   }
@@ -221,12 +298,17 @@ async function handleSaveUser() {
   }
 
   setActiveUser(userId);
+  clearEditingMode();
   messageEl.textContent = `Using task database for user: ${userId}`;
   await refreshAll();
 }
 
 function attachEvents() {
-  taskForm.addEventListener("submit", handleCreateTask);
+  taskForm.addEventListener("submit", handleSubmitTask);
+  cancelEditButton.addEventListener("click", () => {
+    clearEditingMode();
+    messageEl.textContent = "Edit cancelled.";
+  });
   refreshPlanButton.addEventListener("click", loadTodayPlan);
   refreshTasksButton.addEventListener("click", loadAllTasks);
   allTasksFilter.addEventListener("change", () => {
@@ -235,8 +317,8 @@ function attachEvents() {
       messageEl.textContent = `Failed to load tasks: ${error.message}`;
     });
   });
-  todayPlanEl.addEventListener("click", handleMarkDone);
-  allTasksEl.addEventListener("click", handleMarkDone);
+  todayPlanEl.addEventListener("click", handleTaskAction);
+  allTasksEl.addEventListener("click", handleTaskAction);
   saveUserButton.addEventListener("click", () => {
     handleSaveUser().catch((error) => {
       messageEl.textContent = `Failed to switch user: ${error.message}`;

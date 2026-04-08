@@ -5,7 +5,7 @@ from sqlite3 import Row
 from typing import Any
 
 from app.db import get_connection
-from app.schemas import TaskCreate
+from app.schemas import TaskCreate, TaskUpdate
 
 
 def _row_to_task(row: Row) -> dict[str, Any]:
@@ -78,6 +78,41 @@ def list_tasks(user_id: str, status: str | None = None) -> list[dict[str, Any]]:
 
 def list_open_tasks(user_id: str) -> list[dict[str, Any]]:
     return list_tasks(user_id=user_id, status="open")
+
+
+def update_task(task_id: int, user_id: str, task_update: TaskUpdate) -> dict[str, Any] | None:
+    assignments: list[str] = []
+    values: list[object] = []
+
+    if "title" in task_update.model_fields_set:
+        assignments.append("title = ?")
+        values.append(task_update.title.strip() if task_update.title is not None else None)
+
+    if "course" in task_update.model_fields_set:
+        assignments.append("course = ?")
+        values.append(task_update.course.strip() if task_update.course is not None else "")
+
+    if "deadline" in task_update.model_fields_set:
+        assignments.append("deadline = ?")
+        values.append(task_update.deadline.isoformat() if task_update.deadline is not None else None)
+
+    if "estimated_minutes" in task_update.model_fields_set:
+        assignments.append("estimated_minutes = ?")
+        values.append(task_update.estimated_minutes)
+
+    if not assignments:
+        return get_task(task_id, user_id)
+
+    values.extend([task_id, user_id])
+    sql = f"UPDATE tasks SET {', '.join(assignments)} WHERE id = ? AND user_id = ?"
+
+    with get_connection() as connection:
+        cursor = connection.execute(sql, tuple(values))
+        connection.commit()
+
+    if cursor.rowcount == 0:
+        return get_task(task_id, user_id)
+    return get_task(task_id, user_id)
 
 
 def mark_task_done(task_id: int, user_id: str) -> dict[str, Any] | None:

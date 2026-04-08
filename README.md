@@ -79,7 +79,7 @@ Product idea: `Deadline Coach` is a web app that collects student tasks and auto
 
 Core feature: A "Today Plan" that sorts open tasks by deadline and completion status, where the student can add tasks and mark them done (Version 1). If effort is used, it is entered by the user.
 
-Additional feature: Natural-language task input (for example: "Math HW due Friday, 90 minutes") that converts a text message into a structured task automatically (Version 2).
+Additional feature: Users can edit existing tasks (title, course, deadline, estimated effort) directly in the app (Version 2).
 
 ## Task 3 (approved by TA during the lab)
 
@@ -218,3 +218,11 @@ uv run pytest
 - Task endpoints require `X-User-Id` header.
 - Web UI has an **Active User** field and stores it in browser local storage.
 - Each user sees only their own tasks and cannot mark another user's task as done.
+
+
+## Version 2 update (Task 4)
+
+- Added task editing in UI: click Edit in Today Plan or All Tasks, update fields, then save.
+- Added backend endpoint PATCH /api/tasks/{task_id} for partial task updates.
+- Preserved multi-user isolation: users can edit only their own tasks.
+

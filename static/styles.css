@@ -73,6 +73,12 @@ body {
   gap: 0.75rem;
 }
 
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 label {
   display: grid;
   gap: 0.4rem;
@@ -113,6 +119,14 @@ button:hover {
   background: var(--accent-dark);
 }
 
+.secondary-button {
+  background: #7f8fa0;
+}
+
+.secondary-button:hover {
+  background: #647485;
+}
+
 .task-list {
   list-style: none;
   margin: 0.5rem 0 0;
@@ -135,6 +149,15 @@ button:hover {
 .task-main {
   display: grid;
   gap: 0.2rem;
+}
+
+.task-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.task-actions button {
+  white-space: nowrap;
 }
 
 .task-title {
@@ -169,5 +192,9 @@ button:hover {
   .tasks-toolbar {
     flex-wrap: wrap;
     justify-content: flex-end;
+  }
+
+  .form-actions {
+    flex-wrap: wrap;
   }
 }
