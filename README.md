@@ -212,3 +212,9 @@ Implemented in this branch:
 ```bash
 uv run pytest
 ```
+
+### Multi-user behavior
+
+- Task endpoints require `X-User-Id` header.
+- Web UI has an **Active User** field and stores it in browser local storage.
+- Each user sees only their own tasks and cannot mark another user's task as done.
