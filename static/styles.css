@@ -56,6 +56,17 @@ body {
   gap: 1rem;
 }
 
+.tasks-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.tasks-filter-label {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -79,11 +90,13 @@ label {
   font-weight: 600;
 }
 
-input {
+input,
+select {
   padding: 0.58rem 0.65rem;
   border-radius: 8px;
   border: 1px solid #bdd0e2;
   font: inherit;
+  background: #fff;
 }
 
 button {
@@ -151,5 +164,10 @@ button:hover {
 @media (max-width: 700px) {
   .user-controls {
     grid-template-columns: 1fr;
+  }
+
+  .tasks-toolbar {
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 }

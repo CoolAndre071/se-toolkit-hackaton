@@ -4,12 +4,15 @@ const todayPlanEl = document.getElementById("today-plan");
 const allTasksEl = document.getElementById("all-tasks");
 const refreshPlanButton = document.getElementById("refresh-plan");
 const refreshTasksButton = document.getElementById("refresh-tasks");
+const allTasksFilter = document.getElementById("all-tasks-filter");
 const userIdInput = document.getElementById("user-id");
 const saveUserButton = document.getElementById("save-user");
 const activeUserLabel = document.getElementById("active-user-label");
 
 const USER_STORAGE_KEY = "deadlineCoachUserId";
+const TASK_FILTER_STORAGE_KEY = "deadlineCoachAllTasksFilter";
 const USER_ID_PATTERN = /^[A-Za-z0-9_.-]{1,64}$/;
+const VALID_TASK_FILTERS = new Set(["open", "all"]);
 let activeUserId = "";
 
 function escapeHtml(value) {
@@ -82,6 +85,20 @@ function requireUserId() {
   }
 }
 
+function getAllTasksFilter() {
+  const filter = allTasksFilter.value;
+  if (!VALID_TASK_FILTERS.has(filter)) {
+    return "open";
+  }
+  return filter;
+}
+
+function setAllTasksFilter(filter) {
+  const nextFilter = VALID_TASK_FILTERS.has(filter) ? filter : "open";
+  allTasksFilter.value = nextFilter;
+  localStorage.setItem(TASK_FILTER_STORAGE_KEY, nextFilter);
+}
+
 async function fetchJson(url, options = {}) {
   requireUserId();
   const response = await fetch(url, {
@@ -127,9 +144,11 @@ async function loadAllTasks() {
     return;
   }
 
-  const tasks = await fetchJson("/api/tasks?status=all");
+  const filter = getAllTasksFilter();
+  const tasks = await fetchJson(`/api/tasks?status=${encodeURIComponent(filter)}`);
   if (!tasks.length) {
-    renderEmptyState(allTasksEl, "No tasks yet.");
+    const emptyText = filter === "open" ? "No open tasks." : "No tasks yet.";
+    renderEmptyState(allTasksEl, emptyText);
     return;
   }
   allTasksEl.innerHTML = tasks.map((task) => renderTaskItem(task)).join("");
@@ -210,6 +229,12 @@ function attachEvents() {
   taskForm.addEventListener("submit", handleCreateTask);
   refreshPlanButton.addEventListener("click", loadTodayPlan);
   refreshTasksButton.addEventListener("click", loadAllTasks);
+  allTasksFilter.addEventListener("change", () => {
+    setAllTasksFilter(allTasksFilter.value);
+    loadAllTasks().catch((error) => {
+      messageEl.textContent = `Failed to load tasks: ${error.message}`;
+    });
+  });
   todayPlanEl.addEventListener("click", handleMarkDone);
   allTasksEl.addEventListener("click", handleMarkDone);
   saveUserButton.addEventListener("click", () => {
@@ -236,8 +261,14 @@ function restoreUserFromStorage() {
   }
 }
 
+function restoreTasksFilterFromStorage() {
+  const storedFilter = (localStorage.getItem(TASK_FILTER_STORAGE_KEY) || "").trim();
+  setAllTasksFilter(storedFilter);
+}
+
 attachEvents();
 restoreUserFromStorage();
+restoreTasksFilterFromStorage();
 refreshAll().catch((error) => {
   messageEl.textContent = `Failed to load data: ${error.message}`;
 });

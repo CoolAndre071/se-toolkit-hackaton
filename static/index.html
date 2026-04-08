@@ -62,7 +62,14 @@
     <section class="card">
       <div class="section-head">
         <h2>All Tasks</h2>
-        <button id="refresh-tasks" type="button">Refresh</button>
+        <div class="tasks-toolbar">
+          <label class="tasks-filter-label" for="all-tasks-filter">Show</label>
+          <select id="all-tasks-filter">
+            <option value="open" selected>Open only</option>
+            <option value="all">All tasks</option>
+          </select>
+          <button id="refresh-tasks" type="button">Refresh</button>
+        </div>
       </div>
       <ul id="all-tasks" class="task-list"></ul>
     </section>
