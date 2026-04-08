@@ -4,6 +4,13 @@ const todayPlanEl = document.getElementById("today-plan");
 const allTasksEl = document.getElementById("all-tasks");
 const refreshPlanButton = document.getElementById("refresh-plan");
 const refreshTasksButton = document.getElementById("refresh-tasks");
+const userIdInput = document.getElementById("user-id");
+const saveUserButton = document.getElementById("save-user");
+const activeUserLabel = document.getElementById("active-user-label");
+
+const USER_STORAGE_KEY = "deadlineCoachUserId";
+const USER_ID_PATTERN = /^[A-Za-z0-9_.-]{1,64}$/;
+let activeUserId = "";
 
 function escapeHtml(value) {
   return value
@@ -54,10 +61,36 @@ function renderTaskItem(task, includePlanFlags = false) {
   `;
 }
 
+function updateUserLabel() {
+  if (activeUserId) {
+    activeUserLabel.textContent = `Current user: ${activeUserId}`;
+    return;
+  }
+  activeUserLabel.textContent = "Set User ID to load your personal task list.";
+}
+
+function setActiveUser(userId) {
+  activeUserId = userId;
+  localStorage.setItem(USER_STORAGE_KEY, userId);
+  userIdInput.value = userId;
+  updateUserLabel();
+}
+
+function requireUserId() {
+  if (!activeUserId) {
+    throw new Error("Set User ID first");
+  }
+}
+
 async function fetchJson(url, options = {}) {
+  requireUserId();
   const response = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
     ...options,
+    headers: {
+      "Content-Type": "application/json",
+      "X-User-Id": activeUserId,
+      ...(options.headers || {}),
+    },
   });
 
   if (!response.ok) {
@@ -75,6 +108,11 @@ async function fetchJson(url, options = {}) {
 }
 
 async function loadTodayPlan() {
+  if (!activeUserId) {
+    renderEmptyState(todayPlanEl, "Set User ID to view your tasks.");
+    return;
+  }
+
   const tasks = await fetchJson("/api/today-plan");
   if (!tasks.length) {
     renderEmptyState(todayPlanEl, "No open tasks. Add one above.");
@@ -84,6 +122,11 @@ async function loadTodayPlan() {
 }
 
 async function loadAllTasks() {
+  if (!activeUserId) {
+    renderEmptyState(allTasksEl, "Set User ID to view your tasks.");
+    return;
+  }
+
   const tasks = await fetchJson("/api/tasks?status=all");
   if (!tasks.length) {
     renderEmptyState(allTasksEl, "No tasks yet.");
@@ -98,6 +141,12 @@ async function refreshAll() {
 
 async function handleCreateTask(event) {
   event.preventDefault();
+
+  if (!activeUserId) {
+    messageEl.textContent = "Set User ID before creating tasks.";
+    return;
+  }
+
   const formData = new FormData(taskForm);
 
   const payload = {
@@ -130,6 +179,11 @@ async function handleMarkDone(event) {
     return;
   }
 
+  if (!activeUserId) {
+    messageEl.textContent = "Set User ID before updating tasks.";
+    return;
+  }
+
   const taskId = button.getAttribute("data-id");
   try {
     await fetchJson(`/api/tasks/${taskId}/done`, { method: "PATCH" });
@@ -140,15 +194,50 @@ async function handleMarkDone(event) {
   }
 }
 
+async function handleSaveUser() {
+  const userId = userIdInput.value.trim();
+  if (!USER_ID_PATTERN.test(userId)) {
+    messageEl.textContent = "User ID must be 1-64 chars: letters, digits, dot, dash, underscore.";
+    return;
+  }
+
+  setActiveUser(userId);
+  messageEl.textContent = `Using task database for user: ${userId}`;
+  await refreshAll();
+}
+
 function attachEvents() {
   taskForm.addEventListener("submit", handleCreateTask);
   refreshPlanButton.addEventListener("click", loadTodayPlan);
   refreshTasksButton.addEventListener("click", loadAllTasks);
   todayPlanEl.addEventListener("click", handleMarkDone);
   allTasksEl.addEventListener("click", handleMarkDone);
+  saveUserButton.addEventListener("click", () => {
+    handleSaveUser().catch((error) => {
+      messageEl.textContent = `Failed to switch user: ${error.message}`;
+    });
+  });
+  userIdInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleSaveUser().catch((error) => {
+        messageEl.textContent = `Failed to switch user: ${error.message}`;
+      });
+    }
+  });
+}
+
+function restoreUserFromStorage() {
+  const storedUserId = (localStorage.getItem(USER_STORAGE_KEY) || "").trim();
+  if (USER_ID_PATTERN.test(storedUserId)) {
+    setActiveUser(storedUserId);
+  } else {
+    updateUserLabel();
+  }
 }
 
 attachEvents();
+restoreUserFromStorage();
 refreshAll().catch((error) => {
   messageEl.textContent = `Failed to load data: ${error.message}`;
 });

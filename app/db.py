@@ -24,6 +24,7 @@ def init_db() -> None:
             """
             CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL DEFAULT 'default',
                 title TEXT NOT NULL,
                 course TEXT NOT NULL DEFAULT '',
                 deadline TEXT NOT NULL,
@@ -32,6 +33,20 @@ def init_db() -> None:
                 created_at TEXT NOT NULL,
                 completed_at TEXT
             );
+            """
+        )
+        columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(tasks)").fetchall()
+        }
+        if "user_id" not in columns:
+            connection.execute(
+                "ALTER TABLE tasks ADD COLUMN user_id TEXT NOT NULL DEFAULT 'default'"
+            )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_tasks_user_status_deadline
+            ON tasks (user_id, status, deadline, id)
             """
         )
         connection.commit()

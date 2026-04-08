@@ -13,6 +13,16 @@
       <p>Your focused today plan for study tasks.</p>
     </header>
 
+    <section class="card user-card">
+      <h2>Active User</h2>
+      <div class="user-controls">
+        <label class="user-label" for="user-id">User ID</label>
+        <input type="text" id="user-id" maxlength="64" placeholder="andrey" autocomplete="off">
+        <button id="save-user" type="button">Use User</button>
+      </div>
+      <p id="active-user-label" class="task-meta"></p>
+    </section>
+
     <section class="card">
       <h2>Add Task</h2>
       <form id="task-form" class="grid">

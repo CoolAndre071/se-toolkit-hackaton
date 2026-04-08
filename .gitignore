@@ -6,3 +6,4 @@ __pycache__/
 .uv-python/
 deadline_coach.db
 pytest-cache-files-*/
+.test-db/
