@@ -226,3 +226,10 @@ uv run pytest
 - Added backend endpoint PATCH /api/tasks/{task_id} for partial task updates.
 - Preserved multi-user isolation: users can edit only their own tasks.
 
+## Task 5 materials
+
+Prepared files for Task 5 submission:
+
+- `task5/TASK5_PRESENTATION.md` - ready 5-slide content draft
+- `task5/DEMO_SCRIPT_2MIN.md` - voice-over script for a <=2 minute demo
+- `task5/LINKS_AND_QR.md` - repo/deploy links and QR generation instructions
